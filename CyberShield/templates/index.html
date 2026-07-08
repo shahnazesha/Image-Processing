@@ -1,0 +1,775 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CyberShield — Steganography</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Orbitron:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    :root[data-theme="dark"] {
+      --bg-primary: #0a0e17;
+      --bg-secondary: #111827;
+      --bg-card: #1a2332;
+      --bg-input: #0d1520;
+      --border: #2a3a52;
+      --border-accent: #00d4ff;
+      --text-primary: #e2e8f0;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent: #00d4ff;
+      --accent-dim: #0099cc;
+      --accent-glow: rgba(0, 212, 255, 0.15);
+      --success: #22c55e;
+      --success-bg: rgba(34, 197, 94, 0.1);
+      --error: #ef4444;
+      --error-bg: rgba(239, 68, 68, 0.1);
+      --warning: #f59e0b;
+      --tab-active: #00d4ff;
+      --tab-inactive: #64748b;
+      --drop-hover: rgba(0, 212, 255, 0.08);
+      --shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+      --strength-empty: #475569;
+      --strength-very-weak: #ef4444;
+      --strength-weak: #f97316;
+      --strength-fair: #eab308;
+      --strength-strong: #22c55e;
+      --strength-very-strong: #4ade80;
+    }
+
+    :root[data-theme="light"] {
+      --bg-primary: #f0f4f8;
+      --bg-secondary: #ffffff;
+      --bg-card: #ffffff;
+      --bg-input: #f8fafc;
+      --border: #cbd5e1;
+      --border-accent: #0284c7;
+      --text-primary: #1e293b;
+      --text-secondary: #475569;
+      --text-muted: #94a3b8;
+      --accent: #0284c7;
+      --accent-dim: #0369a1;
+      --accent-glow: rgba(2, 132, 199, 0.1);
+      --success: #16a34a;
+      --success-bg: rgba(22, 163, 74, 0.08);
+      --error: #dc2626;
+      --error-bg: rgba(220, 38, 38, 0.08);
+      --warning: #d97706;
+      --tab-active: #0284c7;
+      --tab-inactive: #94a3b8;
+      --drop-hover: rgba(2, 132, 199, 0.06);
+      --shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+      --strength-empty: #cbd5e1;
+      --strength-very-weak: #dc2626;
+      --strength-weak: #ea580c;
+      --strength-fair: #ca8a04;
+      --strength-strong: #16a34a;
+      --strength-very-strong: #22c55e;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'JetBrains Mono', monospace;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      min-height: 100vh;
+      line-height: 1.6;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 1.25rem 2rem;
+      border-bottom: 1px solid var(--border);
+      background: var(--bg-secondary);
+    }
+
+    .logo {
+      font-family: 'Orbitron', sans-serif;
+      font-size: 1.4rem;
+      font-weight: 700;
+      color: var(--accent);
+      letter-spacing: 0.05em;
+    }
+
+    .logo span { color: var(--text-secondary); font-weight: 500; }
+
+    .theme-toggle {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text-primary);
+      padding: 0.4rem 0.85rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.8rem;
+      transition: border-color 0.2s, color 0.2s;
+    }
+
+    .theme-toggle:hover { border-color: var(--accent); color: var(--accent); }
+
+    .container {
+      max-width: 720px;
+      margin: 2rem auto;
+      padding: 0 1.5rem;
+    }
+
+    .tabs {
+      display: flex;
+      gap: 0;
+      margin-bottom: 1.5rem;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .tab-btn {
+      flex: 1;
+      padding: 0.85rem 1rem;
+      background: none;
+      border: none;
+      border-bottom: 2px solid transparent;
+      color: var(--tab-inactive);
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      cursor: pointer;
+      transition: color 0.2s, border-color 0.2s;
+    }
+
+    .tab-btn:hover { color: var(--text-primary); }
+    .tab-btn.active { color: var(--tab-active); border-bottom-color: var(--tab-active); }
+
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.5rem;
+      box-shadow: var(--shadow);
+    }
+
+    .field { margin-bottom: 1.25rem; }
+
+    .field label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.1em;
+      color: var(--text-secondary);
+      margin-bottom: 0.5rem;
+      text-transform: uppercase;
+    }
+
+    .drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: 8px;
+      padding: 1.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      position: relative;
+    }
+
+    .drop-zone:hover, .drop-zone.drag-over {
+      border-color: var(--accent);
+      background: var(--drop-hover);
+    }
+
+    .drop-zone input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+
+    .drop-zone-text { color: var(--text-muted); font-size: 0.85rem; pointer-events: none; }
+    .drop-zone-text strong { color: var(--accent); }
+
+    .preview-box {
+      margin-top: 1rem;
+      display: none;
+    }
+
+    .preview-box.visible { display: block; }
+
+    .preview-box img {
+      max-width: 100%;
+      max-height: 200px;
+      border-radius: 6px;
+      border: 1px solid var(--border);
+      display: block;
+      margin-bottom: 0.5rem;
+    }
+
+    .preview-meta { font-size: 0.8rem; color: var(--text-secondary); }
+    .capacity-info { font-size: 0.8rem; color: var(--accent); margin-top: 0.35rem; }
+
+    .input-row {
+      display: flex;
+      gap: 0.5rem;
+      align-items: center;
+    }
+
+    input[type="password"], input[type="text"], textarea {
+      width: 100%;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text-primary);
+      font-family: inherit;
+      font-size: 0.9rem;
+      padding: 0.65rem 0.85rem;
+      transition: border-color 0.2s;
+    }
+
+    input:focus, textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-glow);
+    }
+
+    textarea { resize: vertical; min-height: 120px; }
+
+    .toggle-pw {
+      flex-shrink: 0;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      color: var(--text-secondary);
+      padding: 0.65rem 0.75rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.75rem;
+      white-space: nowrap;
+      transition: border-color 0.2s, color 0.2s;
+    }
+
+    .toggle-pw:hover { border-color: var(--accent); color: var(--accent); }
+
+    .strength-meter { margin-top: 0.5rem; }
+
+    .strength-bar-bg {
+      height: 4px;
+      background: var(--bg-input);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .strength-bar {
+      height: 100%;
+      width: 0%;
+      border-radius: 2px;
+      transition: width 0.3s, background 0.3s;
+    }
+
+    .strength-label {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      margin-top: 0.25rem;
+    }
+
+    .char-counter {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 0.35rem;
+      text-align: right;
+    }
+
+    .char-counter.warning { color: var(--warning); }
+    .char-counter.danger { color: var(--error); }
+
+    .btn-primary {
+      width: 100%;
+      padding: 0.85rem;
+      background: var(--accent);
+      color: #0a0e17;
+      border: none;
+      border-radius: 6px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      cursor: pointer;
+      transition: background 0.2s, opacity 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .btn-primary:hover:not(:disabled) { background: var(--accent-dim); }
+    .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; }
+
+    .spinner {
+      display: none;
+      width: 16px;
+      height: 16px;
+      border: 2px solid transparent;
+      border-top-color: currentColor;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    .btn-primary.loading .spinner { display: inline-block; }
+    .btn-primary.loading .btn-text { opacity: 0.7; }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .alert {
+      margin-top: 1rem;
+      padding: 0.85rem 1rem;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      display: none;
+    }
+
+    .alert.visible { display: block; }
+    .alert-error { background: var(--error-bg); border: 1px solid var(--error); color: var(--error); }
+    .alert-success { background: var(--success-bg); border: 1px solid var(--success); color: var(--success); }
+
+    .download-section {
+      margin-top: 1rem;
+      display: none;
+      text-align: center;
+    }
+
+    .download-section.visible { display: block; }
+
+    .btn-download {
+      display: inline-block;
+      padding: 0.75rem 1.5rem;
+      background: var(--success);
+      color: #fff;
+      text-decoration: none;
+      border-radius: 6px;
+      font-family: 'Orbitron', sans-serif;
+      font-size: 0.75rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      transition: opacity 0.2s;
+    }
+
+    .btn-download:hover { opacity: 0.85; }
+
+    .extracted-message {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      margin-top: 1rem;
+    }
+
+    .extracted-text {
+      flex: 1;
+      background: var(--bg-input);
+      border: 1px solid var(--success);
+      border-radius: 6px;
+      padding: 0.85rem;
+      font-size: 0.85rem;
+      color: var(--text-primary);
+      word-break: break-word;
+      white-space: pre-wrap;
+    }
+
+    .btn-copy {
+      flex-shrink: 0;
+      background: var(--bg-input);
+      border: 1px solid var(--success);
+      color: var(--success);
+      padding: 0.65rem 0.85rem;
+      border-radius: 6px;
+      cursor: pointer;
+      font-family: inherit;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      transition: background 0.2s;
+    }
+
+    .btn-copy:hover { background: var(--success-bg); }
+
+    .footer {
+      text-align: center;
+      padding: 2rem;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      letter-spacing: 0.05em;
+    }
+  </style>
+</head>
+<body>
+
+  <header class="header">
+    <div class="logo">CYBER<span>SHIELD</span></div>
+    <button class="theme-toggle" id="themeToggle" aria-label="Toggle theme">☀ LIGHT</button>
+  </header>
+
+  <div class="container">
+    <div class="tabs">
+      <button class="tab-btn active" data-tab="hide">HIDE MESSAGE</button>
+      <button class="tab-btn" data-tab="extract">EXTRACT MESSAGE</button>
+    </div>
+
+    <!-- HIDE PANEL -->
+    <div class="panel active" id="panel-hide">
+      <div class="card">
+        <div class="field">
+          <label>Cover Image</label>
+          <div class="drop-zone" id="hideDropZone">
+            <input type="file" id="hideImageInput" accept="image/*">
+            <div class="drop-zone-text">Drag &amp; drop an image here or <strong>browse</strong></div>
+          </div>
+          <div class="preview-box" id="hidePreview">
+            <img id="hidePreviewImg" alt="Cover preview">
+            <div class="preview-meta" id="hidePreviewMeta"></div>
+            <div class="capacity-info" id="hideCapacity"></div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Encryption Password</label>
+          <div class="input-row">
+            <input type="password" id="hidePassword" placeholder="Enter a strong password" autocomplete="off">
+            <button type="button" class="toggle-pw" data-target="hidePassword">SHOW</button>
+          </div>
+          <div class="strength-meter">
+            <div class="strength-bar-bg"><div class="strength-bar" id="strengthBar"></div></div>
+            <div class="strength-label" id="strengthLabel"></div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Secret Message</label>
+          <textarea id="hideMessage" placeholder="Type your secret message here..."></textarea>
+          <div class="char-counter" id="charCounter">0 characters · 0 bytes</div>
+        </div>
+
+        <button class="btn-primary" id="hideBtn">
+          <span class="spinner"></span>
+          <span class="btn-text">ENCRYPT &amp; HIDE</span>
+        </button>
+
+        <div class="alert alert-error" id="hideError"></div>
+
+        <div class="download-section" id="downloadSection">
+          <a class="btn-download" id="downloadLink" download="cybershield_encoded.png">DOWNLOAD ENCODED IMAGE</a>
+        </div>
+      </div>
+    </div>
+
+    <!-- EXTRACT PANEL -->
+    <div class="panel" id="panel-extract">
+      <div class="card">
+        <div class="field">
+          <label>Encoded Image</label>
+          <div class="drop-zone" id="extractDropZone">
+            <input type="file" id="extractImageInput" accept="image/*">
+            <div class="drop-zone-text">Drag &amp; drop the encoded image or <strong>browse</strong></div>
+          </div>
+          <div class="preview-box" id="extractPreview">
+            <img id="extractPreviewImg" alt="Encoded preview">
+            <div class="preview-meta" id="extractPreviewMeta"></div>
+          </div>
+        </div>
+
+        <div class="field">
+          <label>Decryption Password</label>
+          <div class="input-row">
+            <input type="password" id="extractPassword" placeholder="Enter the password" autocomplete="off">
+            <button type="button" class="toggle-pw" data-target="extractPassword">SHOW</button>
+          </div>
+        </div>
+
+        <button class="btn-primary" id="extractBtn">
+          <span class="spinner"></span>
+          <span class="btn-text">DECRYPT &amp; EXTRACT</span>
+        </button>
+
+        <div class="alert alert-error" id="extractError"></div>
+
+        <div class="alert alert-success" id="extractSuccess" style="display:none;">
+          <div class="extracted-message">
+            <div class="extracted-text" id="extractedText"></div>
+            <button class="btn-copy" id="copyBtn">COPY</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer">Qubits</footer>
+
+  <script>
+    let hideImageFile = null;
+    let extractImageFile = null;
+    let imageCapacity = 0;
+
+    // Theme toggle
+    const themeToggle = document.getElementById('themeToggle');
+    const html = document.documentElement;
+
+    function updateThemeButton() {
+      const isDark = html.getAttribute('data-theme') === 'dark';
+      themeToggle.textContent = isDark ? '☀ LIGHT' : '☾ DARK';
+    }
+
+    themeToggle.addEventListener('click', () => {
+      const next = html.getAttribute('data-theme') === 'dark' ? 'light' : 'dark';
+      html.setAttribute('data-theme', next);
+      updateThemeButton();
+    });
+
+    // Tabs
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        btn.classList.add('active');
+        document.getElementById('panel-' + btn.dataset.tab).classList.add('active');
+      });
+    });
+
+    // Password show/hide
+    document.querySelectorAll('.toggle-pw').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const input = document.getElementById(btn.dataset.target);
+        if (input.type === 'password') {
+          input.type = 'text';
+          btn.textContent = 'HIDE';
+        } else {
+          input.type = 'password';
+          btn.textContent = 'SHOW';
+        }
+      });
+    });
+
+    // Password strength
+    const strengthBar = document.getElementById('strengthBar');
+    const strengthLabel = document.getElementById('strengthLabel');
+    const hidePassword = document.getElementById('hidePassword');
+
+    function calcStrength(pw) {
+      if (!pw) return { level: 'empty', label: '', width: '0%', color: 'var(--strength-empty)' };
+
+      let score = pw.length;
+      if (/[A-Z]/.test(pw)) score += 2;
+      if (/[0-9]/.test(pw)) score += 2;
+      if (/[^A-Za-z0-9]/.test(pw)) score += 2;
+
+      if (pw.length <= 5) return { level: 'very-weak', label: 'Very Weak', width: '20%', color: 'var(--strength-very-weak)' };
+      if (pw.length <= 8) return { level: 'weak', label: 'Weak', width: '40%', color: 'var(--strength-weak)' };
+      if (pw.length <= 11) return { level: 'fair', label: 'Fair', width: '60%', color: 'var(--strength-fair)' };
+      if (pw.length <= 14) return { level: 'strong', label: 'Strong', width: '80%', color: 'var(--strength-strong)' };
+      return { level: 'very-strong', label: 'Very Strong', width: '100%', color: 'var(--strength-very-strong)' };
+    }
+
+    hidePassword.addEventListener('input', () => {
+      const s = calcStrength(hidePassword.value);
+      strengthBar.style.width = s.width;
+      strengthBar.style.background = s.color;
+      strengthLabel.textContent = s.label;
+    });
+
+    // Character counter
+    const hideMessage = document.getElementById('hideMessage');
+    const charCounter = document.getElementById('charCounter');
+    const hideBtn = document.getElementById('hideBtn');
+
+    function updateCharCounter() {
+      const text = hideMessage.value;
+      const chars = text.length;
+      const bytes = new TextEncoder().encode(text).length;
+      charCounter.textContent = `${chars.toLocaleString()} characters · ${bytes.toLocaleString()} bytes`;
+
+      charCounter.classList.remove('warning', 'danger');
+      if (imageCapacity > 0) {
+        if (bytes > imageCapacity) {
+          charCounter.classList.add('danger');
+          hideBtn.disabled = true;
+        } else {
+          hideBtn.disabled = false;
+          if (bytes > imageCapacity * 0.8) charCounter.classList.add('warning');
+        }
+      }
+    }
+
+    hideMessage.addEventListener('input', updateCharCounter);
+
+    // Drag & drop helper
+    function setupDropZone(zone, input, onFile) {
+      zone.addEventListener('dragover', e => { e.preventDefault(); zone.classList.add('drag-over'); });
+      zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+      zone.addEventListener('drop', e => {
+        e.preventDefault();
+        zone.classList.remove('drag-over');
+        const file = e.dataTransfer.files[0];
+        if (file && file.type.startsWith('image/')) onFile(file);
+      });
+      input.addEventListener('change', () => {
+        if (input.files[0]) onFile(input.files[0]);
+      });
+    }
+
+    // Hide image selection
+    const hidePreview = document.getElementById('hidePreview');
+    const hidePreviewImg = document.getElementById('hidePreviewImg');
+    const hidePreviewMeta = document.getElementById('hidePreviewMeta');
+    const hideCapacity = document.getElementById('hideCapacity');
+    const hideError = document.getElementById('hideError');
+    const downloadSection = document.getElementById('downloadSection');
+
+    function handleHideImage(file) {
+      hideImageFile = file;
+      hideError.classList.remove('visible');
+      downloadSection.classList.remove('visible');
+
+      const url = URL.createObjectURL(file);
+      hidePreviewImg.src = url;
+      hidePreview.classList.add('visible');
+      hidePreviewMeta.textContent = file.name;
+      hideCapacity.textContent = 'Calculating capacity...';
+
+      const fd = new FormData();
+      fd.append('image', file);
+      fetch('/api/capacity', { method: 'POST', body: fd })
+        .then(r => r.json())
+        .then(data => {
+          imageCapacity = data.capacity;
+          hidePreviewMeta.textContent = `${file.name} · ${data.width} × ${data.height} px`;
+          hideCapacity.textContent = `This image can hold up to ${data.capacity.toLocaleString()} bytes`;
+          updateCharCounter();
+        })
+        .catch(() => {
+          hideCapacity.textContent = 'Could not determine capacity';
+        });
+    }
+
+    setupDropZone(
+      document.getElementById('hideDropZone'),
+      document.getElementById('hideImageInput'),
+      handleHideImage
+    );
+
+    // Hide action
+    hideBtn.addEventListener('click', async () => {
+      hideError.classList.remove('visible');
+      downloadSection.classList.remove('visible');
+
+      if (!hideImageFile) { showError(hideError, 'Please select a cover image.'); return; }
+      if (!hidePassword.value) { showError(hideError, 'Please enter a password.'); return; }
+      if (!hideMessage.value) { showError(hideError, 'Please enter a secret message.'); return; }
+
+      setLoading(hideBtn, true);
+      const fd = new FormData();
+      fd.append('image', hideImageFile);
+      fd.append('password', hidePassword.value);
+      fd.append('message', hideMessage.value);
+
+      try {
+        const res = await fetch('/api/hide', { method: 'POST', body: fd });
+        const data = await res.json();
+        if (!res.ok) {
+          showError(hideError, data.error || 'An error occurred.');
+          return;
+        }
+        const binary = atob(data.image);
+        const bytes = new Uint8Array(binary.length);
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+        const blob = new Blob([bytes], { type: 'image/png' });
+        const blobUrl = URL.createObjectURL(blob);
+        const link = document.getElementById('downloadLink');
+        link.href = blobUrl;
+        downloadSection.classList.add('visible');
+      } catch {
+        showError(hideError, 'Network error. Please try again.');
+      } finally {
+        setLoading(hideBtn, false);
+      }
+    });
+
+    // Extract image selection
+    const extractPreview = document.getElementById('extractPreview');
+    const extractPreviewImg = document.getElementById('extractPreviewImg');
+    const extractPreviewMeta = document.getElementById('extractPreviewMeta');
+    const extractError = document.getElementById('extractError');
+    const extractSuccess = document.getElementById('extractSuccess');
+
+    function handleExtractImage(file) {
+      extractImageFile = file;
+      extractError.classList.remove('visible');
+      extractSuccess.style.display = 'none';
+
+      const url = URL.createObjectURL(file);
+      extractPreviewImg.src = url;
+      extractPreview.classList.add('visible');
+      extractPreviewMeta.textContent = file.name;
+    }
+
+    setupDropZone(
+      document.getElementById('extractDropZone'),
+      document.getElementById('extractImageInput'),
+      handleExtractImage
+    );
+
+    // Extract action
+    const extractBtn = document.getElementById('extractBtn');
+    const extractedText = document.getElementById('extractedText');
+    const copyBtn = document.getElementById('copyBtn');
+
+    extractBtn.addEventListener('click', async () => {
+      extractError.classList.remove('visible');
+      extractSuccess.style.display = 'none';
+
+      if (!extractImageFile) { showError(extractError, 'Please select an encoded image.'); return; }
+      if (!document.getElementById('extractPassword').value) {
+        showError(extractError, 'Please enter a password.');
+        return;
+      }
+
+      setLoading(extractBtn, true);
+      const fd = new FormData();
+      fd.append('image', extractImageFile);
+      fd.append('password', document.getElementById('extractPassword').value);
+
+      try {
+        const res = await fetch('/api/extract', { method: 'POST', body: fd });
+        const data = await res.json();
+        if (!res.ok) {
+          showError(extractError, data.error || 'Decryption failed. Wrong password or no hidden data.');
+          return;
+        }
+        extractedText.textContent = data.message;
+        extractSuccess.style.display = 'block';
+      } catch {
+        showError(extractError, 'Network error. Please try again.');
+      } finally {
+        setLoading(extractBtn, false);
+      }
+    });
+
+    copyBtn.addEventListener('click', () => {
+      navigator.clipboard.writeText(extractedText.textContent).then(() => {
+        copyBtn.textContent = 'COPIED!';
+        setTimeout(() => { copyBtn.textContent = 'COPY'; }, 2000);
+      });
+    });
+
+    // Helpers
+    function showError(el, msg) {
+      el.textContent = msg;
+      el.classList.add('visible');
+    }
+
+    function setLoading(btn, loading) {
+      btn.classList.toggle('loading', loading);
+      btn.disabled = loading;
+    }
+  </script>
+</body>
+</html>
